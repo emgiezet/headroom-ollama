@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Weekly: catch a new headroom-ai 0.36.x patch breaking the contract tests
+  # (0.36.5 added an SSRF guard that silently disabled the upstream override).
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (py${{ matrix.python }}, ${{ matrix.resolution }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+        resolution: [locked]
+        include:
+          - python: "3.13"
+            resolution: latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Install (uv.lock)
+        if: matrix.resolution == 'locked'
+        run: uv sync --locked --group dev
+      - name: Install (newest allowed headroom-ai)
+        if: matrix.resolution == 'latest'
+        run: uv sync --upgrade --group dev
+      - name: Headroom version
+        run: uv run --no-sync python -c "import importlib.metadata as m; print('headroom-ai', m.version('headroom-ai'))"
+      - name: Test
+        run: uv run --no-sync pytest -q
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Build sdist and wheel
+        run: uv build
+      - name: Check entry points are packaged
+        run: |
+          unzip -p dist/*.whl '*.dist-info/entry_points.txt' | tee /dev/stderr \
+            | grep -q '^ollama = headroom_ollama.proxy:install$'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

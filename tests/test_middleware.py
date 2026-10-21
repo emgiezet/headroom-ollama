@@ -204,3 +204,28 @@ def test_install_rejects_invalid_configuration(monkeypatch, env, value):
 
     with pytest.raises(ValueError, match=env):
         install(Starlette(), config=None)
+
+
+def _installed(app: Starlette) -> bool:
+    return any(m.cls is OllamaRouteMiddleware for m in app.user_middleware)
+
+
+def test_install_refuses_loopback_upstream_headroom_would_reject(monkeypatch):
+    """Otherwise Headroom drops the override and sends Ollama prompts to OpenAI."""
+    monkeypatch.delenv("HEADROOM_ALLOWED_BASE_URLS", raising=False)
+    monkeypatch.setenv("HEADROOM_OLLAMA_URL", "http://127.0.0.1:11434")
+    app = Starlette()
+
+    with pytest.raises(RuntimeError, match="HEADROOM_ALLOWED_BASE_URLS=http://127.0.0.1:11434"):
+        install(app, config=None)
+    assert not _installed(app)
+
+
+def test_install_accepts_allowlisted_loopback_upstream(monkeypatch):
+    monkeypatch.setenv("HEADROOM_ALLOWED_BASE_URLS", "http://127.0.0.1:11434")
+    monkeypatch.setenv("HEADROOM_OLLAMA_URL", "http://127.0.0.1:11434")
+    app = Starlette()
+
+    install(app, config=None)
+
+    assert _installed(app)

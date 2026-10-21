@@ -106,6 +106,8 @@ def headroom(fake_ollama, tmp_path_factory) -> Iterator[TestClient]:
         mp.setenv("HEADROOM_CONFIG_DIR", str(state))
         mp.setenv("HEADROOM_TELEMETRY", "off")
         mp.setenv("HEADROOM_OLLAMA_URL", upstream)
+        # Loopback upstream: Headroom's SSRF guard needs the operator allowlist.
+        mp.setenv("HEADROOM_ALLOWED_BASE_URLS", upstream)
 
         from headroom.proxy.models import ProxyConfig
         from headroom.proxy.server import create_app

@@ -31,6 +31,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, MutableMapping
 from typing import Any
 
 import httpx
+from headroom.proxy.upstream_guard import ALLOWED_BASE_URLS_ENV, is_safe_upstream_url
 
 log = logging.getLogger(__name__)
 
@@ -221,8 +222,20 @@ async def _send_json(send: Send, status: int, payload: dict[str, Any]) -> None:
 
 
 def install(app: Any, config: Any) -> None:
-    """``headroom.proxy_extension`` entry point. Performs no network I/O."""
+    """``headroom.proxy_extension`` entry point.
+
+    Raising makes Headroom skip the extension and start without it.
+    """
     prefix = normalize_prefix(os.environ.get(PREFIX_ENV, DEFAULT_PREFIX))
     upstream = normalize_upstream(os.environ.get(UPSTREAM_ENV, DEFAULT_UPSTREAM))
+    # Headroom's SSRF guard drops an x-headroom-base-url override that points at a
+    # private/loopback address unless the operator allowlists it, and then sends
+    # the request to the default OpenAI upstream instead: Ollama prompts would
+    # leak to api.openai.com. Refuse to install rather than route that way.
+    if not is_safe_upstream_url(upstream):
+        raise RuntimeError(
+            f"Headroom would reject {upstream} as an upstream override; add it to "
+            f"{ALLOWED_BASE_URLS_ENV} on the proxy (e.g. {ALLOWED_BASE_URLS_ENV}={upstream})"
+        )
     app.add_middleware(OllamaRouteMiddleware, prefix=prefix, upstream=upstream)
     log.info("headroom-ollama: %s/* -> %s", prefix, upstream)
