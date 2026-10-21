@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headroom-ollama"
+version = "0.1.0"
+description = "Headroom proxy extension: compress Ollama traffic under its own /ollama route"
+readme = "README.md"
+requires-python = ">=3.10"
+# Pinned to the minor line the contract tests run against: the extension relies on
+# Headroom internals (x-headroom-base-url, x-client classification) beyond the
+# stable install(app, config) signature.
+dependencies = [
+    "headroom-ai>=0.36,<0.37",
+    "httpx>=0.27",
+    "click>=8",
+]
+
+[project.entry-points."headroom.proxy_extension"]
+ollama = "headroom_ollama.proxy:install"
+
+[project.entry-points."headroom.cli_extension"]
+ollama = "headroom_ollama.cli:register"
+
+[dependency-groups]
+dev = ["pytest>=8", "uvicorn>=0.30"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headroom_ollama"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
