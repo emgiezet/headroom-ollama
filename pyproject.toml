@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,6 +7,9 @@ name = "headroom-ollama"
 version = "0.1.0"
 description = "Headroom proxy extension: compress Ollama traffic under its own /ollama route"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Max Małecki", email = "maxmalecki@gmail.com" }]
 requires-python = ">=3.10"
 # Pinned to the minor line the contract tests run against: the extension relies on
 # Headroom internals (x-headroom-base-url, x-client classification, the 0.36.5

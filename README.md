@@ -84,3 +84,7 @@ providers:
 uv sync --group dev
 uv run pytest
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
