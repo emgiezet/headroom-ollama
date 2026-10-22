@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "headroom-ollama"
-version = "0.1.0"
+version = "0.1.1"
 description = "Headroom proxy extension: compress Ollama traffic under its own /ollama route"
 readme = "README.md"
 license = "MIT"
